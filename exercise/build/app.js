@@ -57328,7 +57328,7 @@
 	    function AppComponent(jsonp) {
 	        var url = "http://api.openweathermap.org/data/2.5/weather?q=london&APPID=57d36da6b8187a992393dc6a0f4c96c3&callback=JSONP_CALLBACK";
 	        var vm = this;
-	        this.weather = 123;
+	        this.weather = {};
 	        this.jsonp = jsonp;
 	    }
 	    AppComponent.prototype.getWeather = function () {
@@ -57342,13 +57342,10 @@
 	            vm.weather = weather;
 	        });
 	    };
-	    AppComponent.prototype.ngOnInit = function () {
-	        this.getWeather();
-	    };
 	    AppComponent = __decorate([
 	        core_1.Component({
 	            selector: 'app',
-	            template: "\n    <h1>AJAX App</h1>\n    <div>{{weather}}</div>\n  ",
+	            template: "\n    <h1>AJAX App</h1>\n    <pre>{{weather | json}}</pre>\n    <button (click)=\"getWeather()\">Click</button>\n  ",
 	            providers: [http_1.JSONP_PROVIDERS]
 	        }), 
 	        __metadata('design:paramtypes', [http_1.Jsonp])
