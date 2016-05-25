@@ -57322,20 +57322,33 @@
 	};
 	var core_1 = __webpack_require__(/*! @angular/core */ 33);
 	var http_1 = __webpack_require__(/*! @angular/http */ 307);
+	__webpack_require__(/*! rxjs/add/operator/map */ 328);
+	__webpack_require__(/*! rxjs/add/operator/share */ 330);
 	var AppComponent = (function () {
 	    function AppComponent(jsonp) {
 	        var url = "http://api.openweathermap.org/data/2.5/weather?q=london&APPID=57d36da6b8187a992393dc6a0f4c96c3&callback=JSONP_CALLBACK";
 	        var vm = this;
-	        jsonp.get(url)
-	            .subscribe(function (res) {
-	            console.log(res);
-	            vm.weather = res.json();
-	        });
+	        this.weather = 123;
+	        this.jsonp = jsonp;
 	    }
+	    AppComponent.prototype.getWeather = function () {
+	        var _this = this;
+	        var url = "http://api.openweathermap.org/data/2.5/weather?q=london&APPID=57d36da6b8187a992393dc6a0f4c96c3&callback=JSONP_CALLBACK";
+	        var vm = this;
+	        this.jsonp.request(url)
+	            .map(function (res) { return res.json(); })
+	            .subscribe(function (weather) {
+	            _this.weather = weather;
+	            vm.weather = weather;
+	        });
+	    };
+	    AppComponent.prototype.ngOnInit = function () {
+	        this.getWeather();
+	    };
 	    AppComponent = __decorate([
 	        core_1.Component({
 	            selector: 'app',
-	            template: "\n    <h1>Angular App</h1>\n    {{weather}}\n  ",
+	            template: "\n    <h1>AJAX App</h1>\n    <div>{{weather}}</div>\n  ",
 	            providers: [http_1.JSONP_PROVIDERS]
 	        }), 
 	        __metadata('design:paramtypes', [http_1.Jsonp])
@@ -60076,6 +60089,354 @@
 	}());
 	exports.BrowserJsonp = BrowserJsonp;
 	//# sourceMappingURL=browser_jsonp.js.map
+
+/***/ },
+/* 328 */
+/*!************************************!*\
+  !*** ./~/rxjs/add/operator/map.js ***!
+  \************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var Observable_1 = __webpack_require__(/*! ../../Observable */ 67);
+	var map_1 = __webpack_require__(/*! ../../operator/map */ 329);
+	Observable_1.Observable.prototype.map = map_1.map;
+	//# sourceMappingURL=map.js.map
+
+/***/ },
+/* 329 */
+/*!********************************!*\
+  !*** ./~/rxjs/operator/map.js ***!
+  \********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var Subscriber_1 = __webpack_require__(/*! ../Subscriber */ 72);
+	/**
+	 * Applies a given `project` function to each value emitted by the source
+	 * Observable, and emits the resulting values as an Observable.
+	 *
+	 * <span class="informal">Like [Array.prototype.map()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map),
+	 * it passes each source value through a transformation function to get
+	 * corresponding output values.</span>
+	 *
+	 * <img src="./img/map.png" width="100%">
+	 *
+	 * Similar to the well known `Array.prototype.map` function, this operator
+	 * applies a projection to each value and emits that projection in the output
+	 * Observable.
+	 *
+	 * @example <caption>Map every every click to the clientX position of that click</caption>
+	 * var clicks = Rx.Observable.fromEvent(document, 'click');
+	 * var positions = clicks.map(ev => ev.clientX);
+	 * positions.subscribe(x => console.log(x));
+	 *
+	 * @see {@link mapTo}
+	 * @see {@link pluck}
+	 *
+	 * @param {function(value: T, index: number): R} project The function to apply
+	 * to each `value` emitted by the source Observable. The `index` parameter is
+	 * the number `i` for the i-th emission that has happened since the
+	 * subscription, starting from the number `0`.
+	 * @param {any} [thisArg] An optional argument to define what `this` is in the
+	 * `project` function.
+	 * @return {Observable<R>} An Observable that emits the values from the source
+	 * Observable transformed by the given `project` function.
+	 * @method map
+	 * @owner Observable
+	 */
+	function map(project, thisArg) {
+	    if (typeof project !== 'function') {
+	        throw new TypeError('argument is not a function. Are you looking for `mapTo()`?');
+	    }
+	    return this.lift(new MapOperator(project, thisArg));
+	}
+	exports.map = map;
+	var MapOperator = (function () {
+	    function MapOperator(project, thisArg) {
+	        this.project = project;
+	        this.thisArg = thisArg;
+	    }
+	    MapOperator.prototype.call = function (subscriber, source) {
+	        return source._subscribe(new MapSubscriber(subscriber, this.project, this.thisArg));
+	    };
+	    return MapOperator;
+	}());
+	/**
+	 * We need this JSDoc comment for affecting ESDoc.
+	 * @ignore
+	 * @extends {Ignored}
+	 */
+	var MapSubscriber = (function (_super) {
+	    __extends(MapSubscriber, _super);
+	    function MapSubscriber(destination, project, thisArg) {
+	        _super.call(this, destination);
+	        this.project = project;
+	        this.count = 0;
+	        this.thisArg = thisArg || this;
+	    }
+	    // NOTE: This looks unoptimized, but it's actually purposefully NOT
+	    // using try/catch optimizations.
+	    MapSubscriber.prototype._next = function (value) {
+	        var result;
+	        try {
+	            result = this.project.call(this.thisArg, value, this.count++);
+	        }
+	        catch (err) {
+	            this.destination.error(err);
+	            return;
+	        }
+	        this.destination.next(result);
+	    };
+	    return MapSubscriber;
+	}(Subscriber_1.Subscriber));
+	//# sourceMappingURL=map.js.map
+
+/***/ },
+/* 330 */
+/*!**************************************!*\
+  !*** ./~/rxjs/add/operator/share.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var Observable_1 = __webpack_require__(/*! ../../Observable */ 67);
+	var share_1 = __webpack_require__(/*! ../../operator/share */ 331);
+	Observable_1.Observable.prototype.share = share_1.share;
+	//# sourceMappingURL=share.js.map
+
+/***/ },
+/* 331 */
+/*!**********************************!*\
+  !*** ./~/rxjs/operator/share.js ***!
+  \**********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var multicast_1 = __webpack_require__(/*! ./multicast */ 332);
+	var Subject_1 = __webpack_require__(/*! ../Subject */ 66);
+	function shareSubjectFactory() {
+	    return new Subject_1.Subject();
+	}
+	/**
+	 * Returns a new Observable that multicasts (shares) the original Observable. As long as there is at least one
+	 * Subscriber this Observable will be subscribed and emitting data. When all subscribers have unsubscribed it will
+	 * unsubscribe from the source Observable. Because the Observable is multicasting it makes the stream `hot`.
+	 * This is an alias for .publish().refCount().
+	 *
+	 * <img src="./img/share.png" width="100%">
+	 *
+	 * @return {Observable<T>} an Observable that upon connection causes the source Observable to emit items to its Observers
+	 * @method share
+	 * @owner Observable
+	 */
+	function share() {
+	    return multicast_1.multicast.call(this, shareSubjectFactory).refCount();
+	}
+	exports.share = share;
+	;
+	//# sourceMappingURL=share.js.map
+
+/***/ },
+/* 332 */
+/*!**************************************!*\
+  !*** ./~/rxjs/operator/multicast.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var ConnectableObservable_1 = __webpack_require__(/*! ../observable/ConnectableObservable */ 333);
+	/**
+	 * Returns an Observable that emits the results of invoking a specified selector on items
+	 * emitted by a ConnectableObservable that shares a single subscription to the underlying stream.
+	 *
+	 * <img src="./img/multicast.png" width="100%">
+	 *
+	 * @param {Function} selector - a function that can use the multicasted source stream
+	 * as many times as needed, without causing multiple subscriptions to the source stream.
+	 * Subscribers to the given source will receive all notifications of the source from the
+	 * time of the subscription forward.
+	 * @return {Observable} an Observable that emits the results of invoking the selector
+	 * on the items emitted by a `ConnectableObservable` that shares a single subscription to
+	 * the underlying stream.
+	 * @method multicast
+	 * @owner Observable
+	 */
+	function multicast(subjectOrSubjectFactory) {
+	    var subjectFactory;
+	    if (typeof subjectOrSubjectFactory === 'function') {
+	        subjectFactory = subjectOrSubjectFactory;
+	    }
+	    else {
+	        subjectFactory = function subjectFactory() {
+	            return subjectOrSubjectFactory;
+	        };
+	    }
+	    return new ConnectableObservable_1.ConnectableObservable(this, subjectFactory);
+	}
+	exports.multicast = multicast;
+	//# sourceMappingURL=multicast.js.map
+
+/***/ },
+/* 333 */
+/*!****************************************************!*\
+  !*** ./~/rxjs/observable/ConnectableObservable.js ***!
+  \****************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var Observable_1 = __webpack_require__(/*! ../Observable */ 67);
+	var Subscriber_1 = __webpack_require__(/*! ../Subscriber */ 72);
+	var Subscription_1 = __webpack_require__(/*! ../Subscription */ 74);
+	/**
+	 * @class ConnectableObservable<T>
+	 */
+	var ConnectableObservable = (function (_super) {
+	    __extends(ConnectableObservable, _super);
+	    function ConnectableObservable(source, subjectFactory) {
+	        _super.call(this);
+	        this.source = source;
+	        this.subjectFactory = subjectFactory;
+	    }
+	    ConnectableObservable.prototype._subscribe = function (subscriber) {
+	        return this.getSubject().subscribe(subscriber);
+	    };
+	    ConnectableObservable.prototype.getSubject = function () {
+	        var subject = this.subject;
+	        if (subject && !subject.isUnsubscribed) {
+	            return subject;
+	        }
+	        return (this.subject = this.subjectFactory());
+	    };
+	    ConnectableObservable.prototype.connect = function () {
+	        var source = this.source;
+	        var subscription = this.subscription;
+	        if (subscription && !subscription.isUnsubscribed) {
+	            return subscription;
+	        }
+	        subscription = source.subscribe(this.getSubject());
+	        subscription.add(new ConnectableSubscription(this));
+	        return (this.subscription = subscription);
+	    };
+	    ConnectableObservable.prototype.refCount = function () {
+	        return new RefCountObservable(this);
+	    };
+	    /**
+	     * This method is opened for `ConnectableSubscription`.
+	     * Not to call from others.
+	     */
+	    ConnectableObservable.prototype._closeSubscription = function () {
+	        this.subject = null;
+	        this.subscription = null;
+	    };
+	    return ConnectableObservable;
+	}(Observable_1.Observable));
+	exports.ConnectableObservable = ConnectableObservable;
+	/**
+	 * We need this JSDoc comment for affecting ESDoc.
+	 * @ignore
+	 * @extends {Ignored}
+	 */
+	var ConnectableSubscription = (function (_super) {
+	    __extends(ConnectableSubscription, _super);
+	    function ConnectableSubscription(connectable) {
+	        _super.call(this);
+	        this.connectable = connectable;
+	    }
+	    ConnectableSubscription.prototype._unsubscribe = function () {
+	        var connectable = this.connectable;
+	        connectable._closeSubscription();
+	        this.connectable = null;
+	    };
+	    return ConnectableSubscription;
+	}(Subscription_1.Subscription));
+	/**
+	 * We need this JSDoc comment for affecting ESDoc.
+	 * @ignore
+	 * @extends {Ignored}
+	 */
+	var RefCountObservable = (function (_super) {
+	    __extends(RefCountObservable, _super);
+	    function RefCountObservable(connectable, refCount) {
+	        if (refCount === void 0) { refCount = 0; }
+	        _super.call(this);
+	        this.connectable = connectable;
+	        this.refCount = refCount;
+	    }
+	    RefCountObservable.prototype._subscribe = function (subscriber) {
+	        var connectable = this.connectable;
+	        var refCountSubscriber = new RefCountSubscriber(subscriber, this);
+	        var subscription = connectable.subscribe(refCountSubscriber);
+	        if (!subscription.isUnsubscribed && ++this.refCount === 1) {
+	            refCountSubscriber.connection = this.connection = connectable.connect();
+	        }
+	        return subscription;
+	    };
+	    return RefCountObservable;
+	}(Observable_1.Observable));
+	/**
+	 * We need this JSDoc comment for affecting ESDoc.
+	 * @ignore
+	 * @extends {Ignored}
+	 */
+	var RefCountSubscriber = (function (_super) {
+	    __extends(RefCountSubscriber, _super);
+	    function RefCountSubscriber(destination, refCountObservable) {
+	        _super.call(this, null);
+	        this.destination = destination;
+	        this.refCountObservable = refCountObservable;
+	        this.connection = refCountObservable.connection;
+	        destination.add(this);
+	    }
+	    RefCountSubscriber.prototype._next = function (value) {
+	        this.destination.next(value);
+	    };
+	    RefCountSubscriber.prototype._error = function (err) {
+	        this._resetConnectable();
+	        this.destination.error(err);
+	    };
+	    RefCountSubscriber.prototype._complete = function () {
+	        this._resetConnectable();
+	        this.destination.complete();
+	    };
+	    RefCountSubscriber.prototype._resetConnectable = function () {
+	        var observable = this.refCountObservable;
+	        var obsConnection = observable.connection;
+	        var subConnection = this.connection;
+	        if (subConnection && subConnection === obsConnection) {
+	            observable.refCount = 0;
+	            obsConnection.unsubscribe();
+	            observable.connection = null;
+	            this.unsubscribe();
+	        }
+	    };
+	    RefCountSubscriber.prototype._unsubscribe = function () {
+	        var observable = this.refCountObservable;
+	        if (observable.refCount === 0) {
+	            return;
+	        }
+	        if (--observable.refCount === 0) {
+	            var obsConnection = observable.connection;
+	            var subConnection = this.connection;
+	            if (subConnection && subConnection === obsConnection) {
+	                obsConnection.unsubscribe();
+	                observable.connection = null;
+	            }
+	        }
+	    };
+	    return RefCountSubscriber;
+	}(Subscriber_1.Subscriber));
+	//# sourceMappingURL=ConnectableObservable.js.map
 
 /***/ }
 /******/ ]);
